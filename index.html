@@ -657,6 +657,9 @@
       .launch-status { font-size: 14.5px; color: var(--ink-2); }
       .launch-status .mono { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; word-break: break-all; }
       .launch-error { color: #c0392b; font-size: 14px; }
+      .launch-pick { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .launch-pick img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; border: 1px solid var(--glass-line); }
+      .launch-upstatus { font-size: 13px; color: var(--ink-2); }
     </style>
   </head>
   <body id="top">
@@ -1001,8 +1004,14 @@
               </div>
             </div>
             <div class="launch-field">
-              <label for="lf-image">Image URL — ipfs:// or https:// link to a square token image</label>
-              <input type="text" id="lf-image" placeholder="ipfs://… or https://…" autocomplete="off">
+              <label>Token image — pick a photo, or paste an image URL</label>
+              <div class="launch-pick">
+                <button type="button" class="btn btn-glass" id="lf-pick">Choose photo</button>
+                <img id="lf-preview" alt="" hidden>
+                <span class="launch-upstatus" id="lf-upstatus">Square works best — big files are cropped and resized automatically.</span>
+              </div>
+              <input type="file" id="lf-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+              <input type="text" id="lf-image" placeholder="ipfs://… or https://… (filled automatically after upload)" autocomplete="off">
             </div>
             <div class="launch-field">
               <label for="lf-desc">Description</label>
@@ -2101,6 +2110,64 @@
           }
         } catch (e) { setError(shortErr(e)); setStatus(""); }
       });
+    })();
+    </script>
+    <script>
+    (function () {
+      var UPLOAD_URL = "https://pogent-upload.vercel.app/api/upload";
+      var fileInput = document.getElementById("lf-file");
+      if (!fileInput) return;
+      var pick = document.getElementById("lf-pick"),
+          preview = document.getElementById("lf-preview"),
+          status = document.getElementById("lf-upstatus"),
+          uriInput = document.getElementById("lf-image");
+      function say(t) { status.textContent = t; }
+      pick.addEventListener("click", function () { fileInput.click(); });
+      fileInput.addEventListener("change", function () {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) { say("That file is not an image — pick a PNG, JPG, WebP or GIF."); return; }
+        var url = URL.createObjectURL(file);
+        if (file.type === "image/gif" && file.size <= 5 * 1024 * 1024) {
+          preview.src = url; preview.hidden = false;
+          upload(file, file.name, file.type);
+          return;
+        }
+        say("Preparing image…");
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var side = Math.min(img.naturalWidth, img.naturalHeight);
+            var sx = (img.naturalWidth - side) / 2, sy = (img.naturalHeight - side) / 2;
+            var size = Math.min(1024, side);
+            var canvas = document.createElement("canvas");
+            canvas.width = size; canvas.height = size;
+            canvas.getContext("2d").drawImage(img, sx, sy, side, side, 0, 0, size, size);
+            var outType = file.type === "image/png" ? "image/png" : "image/jpeg";
+            canvas.toBlob(function (blob) {
+              if (!blob) { say("Could not process that image — or paste an image URL below."); return; }
+              preview.src = URL.createObjectURL(blob); preview.hidden = false;
+              upload(blob, file.name, outType);
+            }, outType, 0.92);
+          } catch (e) { say("Could not process that image — or paste an image URL below."); }
+        };
+        img.onerror = function () { say("That image could not be read — or paste an image URL below."); };
+        img.src = url;
+      });
+      function upload(blob, name, type) {
+        say("Uploading image…");
+        fetch(UPLOAD_URL, { method: "POST", headers: { "Content-Type": type, "X-Filename": name || "token-image" }, body: blob })
+          .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (x) {
+            if (x.ok && x.j && x.j.uri) {
+              uriInput.value = x.j.uri;
+              say("Image uploaded — its ipfs:// link is filled in below. You can launch now.");
+            } else {
+              say("Upload is not live yet — paste an ipfs:// or https:// image URL below instead.");
+            }
+          })
+          .catch(function () { say("Upload is not live yet — paste an ipfs:// or https:// image URL below instead."); });
+      }
     })();
     </script>
   </body>
