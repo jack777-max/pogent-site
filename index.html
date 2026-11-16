@@ -2025,7 +2025,7 @@
     <script>
     (function () {
       var FACTORY = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
-      var CHAIN_HEX = "0x1227"; // 4663 Robinhood Chain
+      var CHAIN_HEX = "0x1237"; // 4663 Robinhood Chain
       var FEE_HEX = "0x1c6bf52634000"; // 0.0005 ETH
       var CONST15 = "a9fc75d4203a33fe660e8fa32c74c3aa41c1fda4bf23d3a39b6bc22a1f8b1ca7";
       var LAUNCHED_TOPIC = "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607";
@@ -2060,16 +2060,19 @@
         if (err && err.code === 4001) return "You rejected the request in your wallet.";
         return m.length > 220 ? m.slice(0, 220) + "…" : m;
       }
-      async function ensureChain() {
-        var cid = await window.ethereum.request({ method: "eth_chainId" });
-        if (cid === CHAIN_HEX) return;
+      async function chainOk() {
         try {
-          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] });
-        } catch (e) {
-          if (e && e.code === 4902) {
-            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] });
-          } else { throw e; }
-        }
+          var cid = await window.ethereum.request({ method: "eth_chainId" });
+          return cid === 4663 || cid === "4663" || parseInt(cid, 16) === 4663;
+        } catch (e) { return false; }
+      }
+      async function ensureChain() {
+        if (await chainOk()) return;
+        try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); } catch (e) {}
+        if (await chainOk()) return;
+        try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
+        if (await chainOk()) return;
+        throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then press Connect again.");
       }
       async function connect() {
         setError("");
@@ -2096,7 +2099,7 @@
             telegram: $("lf-telegram").value.trim(),
             website: $("lf-website").value.trim()
           };
-          var feePct = parseFloat($("lf-fee").value || "0");
+          var feePct = parseFloat(String($("lf-fee").value || "0").replace(",", "."));
           if (!f.name) throw new Error("Token name is required.");
           if (!f.symbol) throw new Error("Ticker is required.");
           if (!/^(ipfs:\/\/|https:\/\/)/.test(f.uri)) throw new Error("Image URL must start with ipfs:// or https://");
@@ -2195,7 +2198,7 @@
     <script>
     (function () {
       var ESCROW = "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e";
-      var CHAIN_HEX = "0x1227"; // 4663 Robinhood Chain
+      var CHAIN_HEX = "0x1237"; // 4663 Robinhood Chain
       var SEL_BALANCE = "0x70a08231"; // balanceOf(address)
       var SEL_CLAIM = "0x4e71d92d"; // claim()
       var account = null;
@@ -2215,16 +2218,19 @@
         if (err && err.code === 4001) return "You rejected the request in your wallet.";
         return m.length > 220 ? m.slice(0, 220) + "…" : m;
       }
-      async function ensureChain() {
-        var cid = await window.ethereum.request({ method: "eth_chainId" });
-        if (cid === CHAIN_HEX) return;
+      async function chainOk() {
         try {
-          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] });
-        } catch (e) {
-          if (e && e.code === 4902) {
-            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] });
-          } else { throw e; }
-        }
+          var cid = await window.ethereum.request({ method: "eth_chainId" });
+          return cid === 4663 || cid === "4663" || parseInt(cid, 16) === 4663;
+        } catch (e) { return false; }
+      }
+      async function ensureChain() {
+        if (await chainOk()) return;
+        try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); } catch (e) {}
+        if (await chainOk()) return;
+        try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
+        if (await chainOk()) return;
+        throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then press Connect again.");
       }
       async function refresh() {
         var res = await window.ethereum.request({ method: "eth_call", params: [{ from: account, to: ESCROW, data: SEL_BALANCE + encAddr(account) }, "latest"] });
