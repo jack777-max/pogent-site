@@ -644,6 +644,8 @@
         .token-note { margin-left: auto; margin-right: auto; }
         section { padding: 32px 0; }
       }
+            /* Creator fee claim */
+      .claim-amount { font-size: 24px; font-weight: 700; color: var(--ink); }
       /* Launchpad */
       .launch-form { display: grid; gap: 14px; }
       .launch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -1045,6 +1047,26 @@
             <p class="launch-status" id="lf-status" role="status" aria-live="polite"></p>
             <p class="launch-error" id="lf-error" role="alert"></p>
           </form>
+        </div>
+      </section>
+
+      <!-- Creator fee claim -->
+      <section id="claim" class="wrap">
+        <div class="sec-head">
+          <h2>Claim creator fees</h2>
+          <p>Creator fees from tokens launched on the Pons factory collect in the Pons fee escrow, under the wallet that launched them. Connect that wallet to see what is claimable and take it out in ETH — you sign the claim yourself, Pogent never holds your keys.</p>
+        </div>
+        <div class="glass-panel scan-panel">
+          <div class="launch-form">
+            <p class="launch-facts">Fee escrow (Pons): <span class="mono" style="font-size:12.5px;word-break:break-all">0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e</span> · Robinhood Chain. Claims are paid in ETH to the connected wallet.</p>
+            <p class="launch-status" id="cf-amount" role="status" aria-live="polite">Connect the wallet that launched your token to check its claimable fees.</p>
+            <div class="launch-actions">
+              <button type="button" class="btn btn-glass" id="cf-connect">Connect wallet</button>
+              <button type="button" class="btn btn-gold" id="cf-claim" disabled>Claim fees</button>
+            </div>
+            <p class="launch-status" id="cf-status" role="status" aria-live="polite"></p>
+            <p class="launch-error" id="cf-error" role="alert"></p>
+          </div>
         </div>
       </section>
 
@@ -2167,6 +2189,113 @@
             }
           })
           .catch(function () { say("Upload is not live yet — paste an ipfs:// or https:// image URL below instead."); });
+      }
+    })();
+    </script>
+    <script>
+    (function () {
+      var ESCROW = "0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e";
+      var CHAIN_HEX = "0x1227"; // 4663 Robinhood Chain
+      var SEL_BALANCE = "0x70a08231"; // balanceOf(address)
+      var SEL_CLAIM = "0x4e71d92d"; // claim()
+      var account = null;
+      var claimable = 0n;
+
+      function $(id) { return document.getElementById(id); }
+      function setStatus(html) { $("cf-status").innerHTML = html; }
+      function setError(msg) { $("cf-error").textContent = msg || ""; }
+      function encAddr(a) { return "0".repeat(24) + a.toLowerCase().replace(/^0x/, ""); }
+      function fmtEth(wei) {
+        var whole = wei / 1000000000000000000n;
+        var frac = (wei % 1000000000000000000n).toString().padStart(18, "0").slice(0, 6).replace(/0+$/, "");
+        return frac ? whole.toString() + "." + frac : whole.toString();
+      }
+      function shortErr(err) {
+        var m = (err && err.message) ? err.message : String(err);
+        if (err && err.code === 4001) return "You rejected the request in your wallet.";
+        return m.length > 220 ? m.slice(0, 220) + "…" : m;
+      }
+      async function ensureChain() {
+        var cid = await window.ethereum.request({ method: "eth_chainId" });
+        if (cid === CHAIN_HEX) return;
+        try {
+          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] });
+        } catch (e) {
+          if (e && e.code === 4902) {
+            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] });
+          } else { throw e; }
+        }
+      }
+      async function refresh() {
+        var res = await window.ethereum.request({ method: "eth_call", params: [{ from: account, to: ESCROW, data: SEL_BALANCE + encAddr(account) }, "latest"] });
+        claimable = BigInt(res);
+        if (claimable > 0n) {
+          $("cf-amount").innerHTML = "Claimable: <span class=\"claim-amount\">" + fmtEth(claimable) + " ETH</span>";
+          $("cf-claim").disabled = false;
+          $("cf-claim").textContent = "Claim " + fmtEth(claimable) + " ETH";
+        } else {
+          $("cf-amount").textContent = "No creator fees claimable for this wallet yet. Fees appear here as your tokens trade.";
+          $("cf-claim").disabled = true;
+          $("cf-claim").textContent = "Claim fees";
+        }
+      }
+      async function connect() {
+        setError("");
+        if (!window.ethereum) { setError("No wallet found. Open pogent.fun in your wallet's browser, or install a wallet extension."); return null; }
+        var accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+        await ensureChain();
+        account = accs[0];
+        $("cf-connect").textContent = account.slice(0, 6) + "…" + account.slice(-4);
+        await refresh();
+        return account;
+      }
+      $("cf-connect").addEventListener("click", function () { connect().catch(function (e) { setError(shortErr(e)); }); });
+      $("cf-claim").addEventListener("click", async function () {
+        setError(""); setStatus("");
+        try {
+          if (!account) { await connect(); if (!account) return; }
+          await ensureChain();
+          await refresh();
+          if (claimable <= 0n) { setStatus("Nothing to claim for this wallet right now."); return; }
+          var amount = claimable;
+          var tx = { from: account, to: ESCROW, value: "0x0", data: SEL_CLAIM };
+          setStatus("Simulating the claim…");
+          await window.ethereum.request({ method: "eth_call", params: [tx, "latest"] });
+          setStatus("Simulation passed. Confirm the claim in your wallet…");
+          var hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+          setStatus("Claim sent. Waiting for confirmation…<br><span class=\"mono\">" + hash + "</span>");
+          var done = false, tries = 0;
+          while (!done && tries < 40) {
+            await new Promise(function (r) { setTimeout(r, 2500); });
+            var rc = await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] });
+            if (rc) {
+              if (rc.status === "0x0") throw new Error("The claim transaction reverted on-chain.");
+              done = true;
+            }
+            tries++;
+          }
+          if (done) {
+            setStatus("<b>Claimed " + fmtEth(amount) + " ETH</b> to <span class=\"mono\">" + account + "</span>.<br><span class=\"mono\">" + hash + "</span>");
+            await refresh();
+          } else {
+            setStatus("Claim transaction sent, but confirmation is taking a while. Check your wallet activity.<br><span class=\"mono\">" + hash + "</span>");
+          }
+        } catch (e) { setError(shortErr(e)); setStatus(""); }
+      });
+      if (window.ethereum && window.ethereum.on) {
+        window.ethereum.on("accountsChanged", function (accs) {
+          account = accs && accs.length ? accs[0] : null;
+          claimable = 0n;
+          $("cf-claim").disabled = true;
+          $("cf-claim").textContent = "Claim fees";
+          if (account) {
+            $("cf-connect").textContent = account.slice(0, 6) + "…" + account.slice(-4);
+            refresh().catch(function () {});
+          } else {
+            $("cf-connect").textContent = "Connect wallet";
+            $("cf-amount").textContent = "Connect the wallet that launched your token to check its claimable fees.";
+          }
+        });
       }
     })();
     </script>
