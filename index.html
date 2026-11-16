@@ -644,6 +644,19 @@
         .token-note { margin-left: auto; margin-right: auto; }
         section { padding: 32px 0; }
       }
+      /* Launchpad */
+      .launch-form { display: grid; gap: 14px; }
+      .launch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      @media (max-width: 640px) { .launch-grid { grid-template-columns: 1fr; } }
+      .launch-field { display: grid; gap: 6px; }
+      .launch-field label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+      .launch-field input, .launch-field textarea { width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--glass-line); background: var(--glass); font: inherit; font-size: 15px; color: var(--ink); }
+      .launch-field textarea { min-height: 76px; resize: vertical; }
+      .launch-facts { font-size: 13.5px; color: var(--ink-2); }
+      .launch-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      .launch-status { font-size: 14.5px; color: var(--ink-2); }
+      .launch-status .mono { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; word-break: break-all; }
+      .launch-error { color: #c0392b; font-size: 14px; }
     </style>
   </head>
   <body id="top">
@@ -966,6 +979,63 @@
               <a class="btn btn-glass" id="scan-report-link-a" href="#" target="_blank" rel="noopener noreferrer" style="min-height:44px;padding:10px 20px;font-size:15px;">View pair on Dexscreener <span aria-hidden="true" style="color:var(--gold);font-weight:700;">↗</span></a>
             </div>
           </article>
+        </div>
+      </section>
+
+      <!-- Launchpad -->
+      <section id="launch" class="wrap">
+        <div class="sec-head">
+          <h2>Launch a token</h2>
+          <p>Launch through Pogent on the Pons factory — Robinhood Chain. Fixed supply of 1,000,000,000, fair launch on a bonding curve, from your own wallet. Pogent never holds your keys: you sign the launch yourself.</p>
+        </div>
+        <div class="glass-panel scan-panel">
+          <form class="launch-form" id="launch-form" novalidate>
+            <div class="launch-grid">
+              <div class="launch-field">
+                <label for="lf-name">Token name</label>
+                <input type="text" id="lf-name" maxlength="64" placeholder="e.g. Fobo Agent" autocomplete="off">
+              </div>
+              <div class="launch-field">
+                <label for="lf-symbol">Ticker</label>
+                <input type="text" id="lf-symbol" maxlength="16" placeholder="e.g. FOBOAGENT" autocomplete="off">
+              </div>
+            </div>
+            <div class="launch-field">
+              <label for="lf-image">Image URL — ipfs:// or https:// link to a square token image</label>
+              <input type="text" id="lf-image" placeholder="ipfs://… or https://…" autocomplete="off">
+            </div>
+            <div class="launch-field">
+              <label for="lf-desc">Description</label>
+              <textarea id="lf-desc" maxlength="280" placeholder="What is this token? One or two sentences."></textarea>
+            </div>
+            <div class="launch-grid">
+              <div class="launch-field">
+                <label for="lf-x">X (Twitter) URL — optional</label>
+                <input type="text" id="lf-x" placeholder="https://x.com/…" autocomplete="off">
+              </div>
+              <div class="launch-field">
+                <label for="lf-telegram">Telegram URL — optional</label>
+                <input type="text" id="lf-telegram" placeholder="https://t.me/…" autocomplete="off">
+              </div>
+            </div>
+            <div class="launch-grid">
+              <div class="launch-field">
+                <label for="lf-website">Website URL — optional</label>
+                <input type="text" id="lf-website" placeholder="https://…" autocomplete="off">
+              </div>
+              <div class="launch-field">
+                <label for="lf-fee">Creator fee % — your share of trading fees, fixed at launch (0–10)</label>
+                <input type="number" id="lf-fee" min="0" max="10" step="0.1" value="0">
+              </div>
+            </div>
+            <p class="launch-facts">Pair: <b>ETH</b> — USDG, stock and other pairs follow. Launch fee <b>0.0005 ETH</b>, paid to the Pons factory. Graduates at <b>4.20 ETH</b>. Curve fee 1.0%. Name, ticker and creator fee cannot be changed after launch — check every field.</p>
+            <div class="launch-actions">
+              <button type="button" class="btn btn-glass" id="lf-connect">Connect wallet</button>
+              <button type="submit" class="btn btn-gold" id="lf-launch">Launch token</button>
+            </div>
+            <p class="launch-status" id="lf-status" role="status" aria-live="polite"></p>
+            <p class="launch-error" id="lf-error" role="alert"></p>
+          </form>
         </div>
       </section>
 
@@ -1921,5 +1991,117 @@
       })();
     </script>
 
+    <script>
+    (function () {
+      var FACTORY = "0x7eD598BcEf8bd9Edd8C97A195C6d13f40801EC7e";
+      var CHAIN_HEX = "0x1227"; // 4663 Robinhood Chain
+      var FEE_HEX = "0x1c6bf52634000"; // 0.0005 ETH
+      var CONST15 = "a9fc75d4203a33fe660e8fa32c74c3aa41c1fda4bf23d3a39b6bc22a1f8b1ca7";
+      var LAUNCHED_TOPIC = "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607";
+      var account = null;
+
+      function $(id) { return document.getElementById(id); }
+      function setStatus(html) { $("lf-status").innerHTML = html; }
+      function setError(msg) { $("lf-error").textContent = msg || ""; }
+      function word(v) { var h = v.toString(16); while (h.length < 64) h = "0" + h; return h; }
+      function bytesToHex(b) { var s = ""; for (var i = 0; i < b.length; i++) s += b[i].toString(16).padStart(2, "0"); return s; }
+      function encStr(str) {
+        var b = new TextEncoder().encode(str || "");
+        var pad = (32 - (b.length % 32)) % 32;
+        return word(BigInt(b.length)) + bytesToHex(b) + "00".repeat(pad);
+      }
+      function encAddr(a) { return "0".repeat(24) + a.toLowerCase().replace(/^0x/, ""); }
+      function buildData(creator, feeBps, saltHex, f) {
+        var list = [f.twitter, f.telegram, "", f.website, ""];
+        var offs = [], datas = [], off = 160, i, e;
+        for (i = 0; i < list.length; i++) { e = encStr(list[i]); offs.push(off); datas.push(e); off += e.length / 2; }
+        var socials = offs.map(function (o) { return word(BigInt(o)); }).join("") + datas.join("");
+        var n = encStr(f.name), sy = encStr(f.symbol), u = encStr(f.uri), d = encStr(f.desc);
+        var o1 = 320, o2 = o1 + n.length / 2, o3 = o2 + sy.length / 2, o4 = o3 + u.length / 2, o5 = o4 + d.length / 2;
+        var cfg = word(BigInt(o1)) + word(BigInt(o2)) + word(BigInt(o3)) + word(BigInt(o4)) + word(BigInt(o5))
+          + encAddr(creator) + word(BigInt(feeBps)) + word(0n) + CONST15 + saltHex
+          + n + sy + u + d + socials;
+        var head = word(128n) + word(0n) + word(0n) + word(BigInt(128 + cfg.length / 2));
+        return "0xa72101af" + head + cfg + word(0n);
+      }
+      function shortErr(err) {
+        var m = (err && err.message) ? err.message : String(err);
+        if (err && err.code === 4001) return "You rejected the request in your wallet.";
+        return m.length > 220 ? m.slice(0, 220) + "…" : m;
+      }
+      async function ensureChain() {
+        var cid = await window.ethereum.request({ method: "eth_chainId" });
+        if (cid === CHAIN_HEX) return;
+        try {
+          await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] });
+        } catch (e) {
+          if (e && e.code === 4902) {
+            await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] });
+          } else { throw e; }
+        }
+      }
+      async function connect() {
+        setError("");
+        if (!window.ethereum) { setError("No wallet found. Open pogent.fun in your wallet's browser, or install a wallet extension."); return null; }
+        var accs = await window.ethereum.request({ method: "eth_requestAccounts" });
+        await ensureChain();
+        account = accs[0];
+        $("lf-connect").textContent = account.slice(0, 6) + "…" + account.slice(-4);
+        return account;
+      }
+      $("lf-connect").addEventListener("click", function () { connect().catch(function (e) { setError(shortErr(e)); }); });
+      $("launch-form").addEventListener("submit", async function (ev) {
+        ev.preventDefault();
+        setError(""); setStatus("");
+        try {
+          if (!account) { await connect(); if (!account) return; }
+          await ensureChain();
+          var f = {
+            name: $("lf-name").value.trim(),
+            symbol: $("lf-symbol").value.trim().toUpperCase(),
+            uri: $("lf-image").value.trim(),
+            desc: $("lf-desc").value.trim(),
+            twitter: $("lf-x").value.trim(),
+            telegram: $("lf-telegram").value.trim(),
+            website: $("lf-website").value.trim()
+          };
+          var feePct = parseFloat($("lf-fee").value || "0");
+          if (!f.name) throw new Error("Token name is required.");
+          if (!f.symbol) throw new Error("Ticker is required.");
+          if (!/^(ipfs:\/\/|https:\/\/)/.test(f.uri)) throw new Error("Image URL must start with ipfs:// or https://");
+          if (isNaN(feePct) || feePct < 0 || feePct > 10) throw new Error("Creator fee must be between 0 and 10%.");
+          var feeBps = Math.round(feePct * 100);
+          var salt = new Uint8Array(32); crypto.getRandomValues(salt);
+          var data = buildData(account, feeBps, bytesToHex(salt), f);
+          var tx = { from: account, to: FACTORY, value: FEE_HEX, data: data };
+          setStatus("Simulating the launch…");
+          await window.ethereum.request({ method: "eth_call", params: [tx, "latest"] });
+          setStatus("Simulation passed. Confirm the launch in your wallet…");
+          var hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+          setStatus("Launch sent. Waiting for confirmation…<br><span class=\"mono\">" + hash + "</span>");
+          var token = null, tries = 0;
+          while (!token && tries < 40) {
+            await new Promise(function (r) { setTimeout(r, 2500); });
+            var rc = await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] });
+            if (rc && rc.logs) {
+              for (var i = 0; i < rc.logs.length; i++) {
+                var lg = rc.logs[i];
+                if (lg.address && lg.address.toLowerCase() === FACTORY.toLowerCase() && lg.topics && lg.topics[0] === LAUNCHED_TOPIC) {
+                  token = "0x" + lg.topics[1].slice(26);
+                }
+              }
+              if (rc.status === "0x0") throw new Error("The launch transaction reverted on-chain.");
+            }
+            tries++;
+          }
+          if (token) {
+            setStatus("<b>" + f.name + " ($" + f.symbol + ") is live.</b><br>Contract: <span class=\"mono\">" + token + "</span><br><a href=\"https://ponsfamily.com/launchpad/" + token + "\" target=\"_blank\" rel=\"noopener\">Trade on Pons ↗</a>");
+          } else {
+            setStatus("Launch transaction confirmed, but the token address was not read back yet. Check your wallet activity for the contract address.<br><span class=\"mono\">" + hash + "</span>");
+          }
+        } catch (e) { setError(shortErr(e)); setStatus(""); }
+      });
+    })();
+    </script>
   </body>
 </html>
