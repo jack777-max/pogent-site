@@ -4,9 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="description" content="Pogent — the agent layer for fair launches on Robinhood Chain. Pons-style launches, run by an autonomous agent." />
-    <link rel="icon" href="data:," />
-    <title>Pogent</title>
+    <meta name="description" content="Pogent — the agent layer for fair launches on Robinhood Chain. Guard Scan checks any contract before you ape. Fair launch: 1B supply, no presale, no team allocation." />
+    <link rel="icon" type="image/jpeg" href="https://www.pogent.fun/logo.jpg" />
+    <title>Pogent — The Agent Layer for Fair Launches</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Pogent" />
+    <meta property="og:title" content="Pogent — The Agent Layer for Fair Launches" />
+    <meta property="og:description" content="Pogent pairs the Pons launch experience with an autonomous agent. Guard Scan checks any contract before you ape. $POGENT: fair launch, 1B supply, no presale, no team allocation." />
+    <meta property="og:url" content="https://www.pogent.fun/" />
+    <meta property="og:image" content="https://www.pogent.fun/logo.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@pogentfun" />
+    <meta name="twitter:title" content="Pogent — The Agent Layer for Fair Launches" />
+    <meta name="twitter:description" content="Pogent pairs the Pons launch experience with an autonomous agent. Guard Scan checks any contract before you ape. $POGENT: fair launch, 1B supply, no presale, no team allocation." />
+    <meta name="twitter:image" content="https://www.pogent.fun/logo.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -690,11 +701,6 @@
         <p class="hero-sub">Pogent pairs the Pons launch experience with an autonomous agent — so a token launch is watched, prepared, and tracked on-chain by software that never sleeps.</p>
         <div class="hero-cta">
           <a class="btn btn-gold" href="#token">$POGENT — coming soon</a>
-          <button type="button" class="btn btn-glass wallet-btn" data-wallet-btn aria-label="Connect wallet">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-            <span class="w-dot" aria-hidden="true"></span>
-            <span class="w-label">Connect Wallet</span>
-          </button>
           <a class="btn btn-glass" href="#about">What is Pogent?</a>
         </div>
         <div class="hero-chips">
@@ -2191,10 +2197,10 @@
               uriInput.value = x.j.uri;
               say("Image uploaded — its ipfs:// link is filled in below. You can launch now.");
             } else {
-              say("Upload is not live yet — paste an ipfs:// or https:// image URL below instead.");
+              say("Upload failed — paste an ipfs:// or https:// image URL below instead.");
             }
           })
-          .catch(function () { say("Upload is not live yet — paste an ipfs:// or https:// image URL below instead."); });
+          .catch(function () { say("Upload failed — paste an ipfs:// or https:// image URL below instead."); });
       }
     })();
     </script>
