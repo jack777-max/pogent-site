@@ -2224,6 +2224,7 @@
             tries++;
           }
           if (token) {
+            try { fetch("https://pogent-upload.vercel.app/api/event", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "launch", ca: token, name: f.name, symbol: f.symbol }), keepalive: true }).catch(function () {}); } catch (e) {}
             setStatus("<b>" + f.name + " ($" + f.symbol + ") is live.</b><br>Contract: <span class=\"mono\">" + token + "</span><br><a href=\"https://ponsfamily.com/launchpad/" + token + "\" target=\"_blank\" rel=\"noopener\">Trade on Pons ↗</a>");
           } else {
             setStatus("Launch transaction confirmed, but the token address was not read back yet. Check your wallet activity for the contract address.<br><span class=\"mono\">" + hash + "</span>");
