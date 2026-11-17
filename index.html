@@ -814,6 +814,7 @@
             <div class="scan-flags" id="scan-report-flags"></div>
             <p class="scan-note" id="scan-report-note" hidden></p>
             <div class="scan-link" id="scan-report-link" hidden>
+              <a class="btn btn-gold" id="scan-report-link-pons" href="#" target="_blank" rel="noopener noreferrer" style="min-height:44px;padding:10px 20px;font-size:15px;margin-right:10px;">Trade on Pons <span aria-hidden="true" style="font-weight:700;">↗</span></a>
               <a class="btn btn-glass" id="scan-report-link-a" href="#" target="_blank" rel="noopener noreferrer" style="min-height:44px;padding:10px 20px;font-size:15px;">View pair on Dexscreener <span aria-hidden="true" style="color:var(--gold);font-weight:700;">↗</span></a>
             </div>
           </article>
@@ -1607,6 +1608,7 @@
         var reportNote = document.getElementById("scan-report-note");
         var reportLinkWrap = document.getElementById("scan-report-link");
         var reportLinkA = document.getElementById("scan-report-link-a");
+        var reportLinkPons = document.getElementById("scan-report-link-pons");
         if (!form || !input) return;
 
         var scanSeq = 0;
@@ -1894,13 +1896,15 @@
             reportNote.hidden = true;
           }
 
+          reportLinkPons.href = "https://ponsfamily.com/launchpad/" + address;
           if (pair && pair.url) {
             reportLinkA.href = pair.url;
-            reportLinkWrap.hidden = false;
+            reportLinkA.hidden = false;
           } else {
             reportLinkA.removeAttribute("href");
-            reportLinkWrap.hidden = true;
+            reportLinkA.hidden = true;
           }
+          reportLinkWrap.hidden = false;
           reportEl.classList.add("show");
         }
 
