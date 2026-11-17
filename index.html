@@ -784,6 +784,42 @@
         </div>
       </section>
 
+<section id="guard-scan" class="wrap">
+        <div class="sec-head">
+          <h2>Guard Scan</h2>
+          <p>Paste a token contract address — or type a token name or symbol — and the agent reads it live: identity and supply from the Robinhood Chain RPC, market data from Dexscreener. Only what those sources return is shown.</p>
+        </div>
+        <div class="glass-panel scan-panel">
+          <form class="scan-form" id="scan-form">
+            <input type="text" id="scan-input" placeholder="0x… contract address, or token name / symbol" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Token contract address, name, or symbol" />
+            <button type="submit" class="btn btn-gold" id="scan-btn" style="min-height:52px;">Analyze</button>
+          </form>
+          <p class="scan-hint">An address (0x…) is read on Robinhood Chain. A name or symbol is searched on Dexscreener first — pick the exact token from the results, names are often shared.</p>
+
+          <div class="scan-status" id="scan-status" role="status" aria-live="polite"><span class="pulse" aria-hidden="true"></span><span id="scan-status-text">Loading…</span></div>
+          <div class="scan-error" id="scan-error" role="alert"></div>
+
+          <div class="scan-choices" id="scan-choices">
+            <div class="scan-choices-label">Search results — choose one</div>
+            <div id="scan-choices-list"></div>
+          </div>
+
+          <article class="scan-report" id="scan-report" aria-live="polite">
+            <div class="scan-report-head">
+              <h3 id="scan-report-name">Guard Report</h3>
+              <span class="scan-sym-chip" id="scan-report-symbol" hidden></span>
+              <span class="scan-chain-chip" id="scan-report-chain" hidden></span>
+            </div>
+            <div class="scan-rows" id="scan-report-rows"></div>
+            <div class="scan-flags" id="scan-report-flags"></div>
+            <p class="scan-note" id="scan-report-note" hidden></p>
+            <div class="scan-link" id="scan-report-link" hidden>
+              <a class="btn btn-glass" id="scan-report-link-a" href="#" target="_blank" rel="noopener noreferrer" style="min-height:44px;padding:10px 20px;font-size:15px;">View pair on Dexscreener <span aria-hidden="true" style="color:var(--gold);font-weight:700;">↗</span></a>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <!-- About -->
       <section id="about" class="wrap">
         <div class="sec-head">
@@ -1031,41 +1067,7 @@
       </section>
 
       <!-- Guard Scan -->
-      <section id="guard-scan" class="wrap">
-        <div class="sec-head">
-          <h2>Guard Scan</h2>
-          <p>Paste a token contract address — or type a token name or symbol — and the agent reads it live: identity and supply from the Robinhood Chain RPC, market data from Dexscreener. Only what those sources return is shown.</p>
-        </div>
-        <div class="glass-panel scan-panel">
-          <form class="scan-form" id="scan-form">
-            <input type="text" id="scan-input" placeholder="0x… contract address, or token name / symbol" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Token contract address, name, or symbol" />
-            <button type="submit" class="btn btn-gold" id="scan-btn" style="min-height:52px;">Analyze</button>
-          </form>
-          <p class="scan-hint">An address (0x…) is read on Robinhood Chain. A name or symbol is searched on Dexscreener first — pick the exact token from the results, names are often shared.</p>
-
-          <div class="scan-status" id="scan-status" role="status" aria-live="polite"><span class="pulse" aria-hidden="true"></span><span id="scan-status-text">Loading…</span></div>
-          <div class="scan-error" id="scan-error" role="alert"></div>
-
-          <div class="scan-choices" id="scan-choices">
-            <div class="scan-choices-label">Search results — choose one</div>
-            <div id="scan-choices-list"></div>
-          </div>
-
-          <article class="scan-report" id="scan-report" aria-live="polite">
-            <div class="scan-report-head">
-              <h3 id="scan-report-name">Guard Report</h3>
-              <span class="scan-sym-chip" id="scan-report-symbol" hidden></span>
-              <span class="scan-chain-chip" id="scan-report-chain" hidden></span>
-            </div>
-            <div class="scan-rows" id="scan-report-rows"></div>
-            <div class="scan-flags" id="scan-report-flags"></div>
-            <p class="scan-note" id="scan-report-note" hidden></p>
-            <div class="scan-link" id="scan-report-link" hidden>
-              <a class="btn btn-glass" id="scan-report-link-a" href="#" target="_blank" rel="noopener noreferrer" style="min-height:44px;padding:10px 20px;font-size:15px;">View pair on Dexscreener <span aria-hidden="true" style="color:var(--gold);font-weight:700;">↗</span></a>
-            </div>
-          </article>
-        </div>
-      </section>
+      
 
       <!-- Launchpad -->
       
