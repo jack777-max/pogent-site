@@ -1266,7 +1266,81 @@
         var loadSeq = 0;
         var rpcId = 1;
 
-        function getProvider() { return window.ethereum || null; }
+        // ---- WalletConnect (for browsers with no injected wallet) ----
+        var WC_PROJECT_ID = "741d580534af7268f886b3f563440286";
+        var WC_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@walletconnect/ethereum-provider@2.21.7/dist/index.umd.min.js";
+        var wcProvider = null;
+        var activeProvider = null;
+        var wcScriptPromise = null;
+
+        function getProvider() { return activeProvider || window.ethereum || null; }
+        window.pogentProvider = getProvider;
+
+        function wcCtor() {
+          var ns = window["@walletconnect/ethereum-provider"];
+          return ns && ns.EthereumProvider ? ns.EthereumProvider : null;
+        }
+
+        function loadWCScript() {
+          if (wcCtor()) return Promise.resolve();
+          if (wcScriptPromise) return wcScriptPromise;
+          wcScriptPromise = new Promise(function (resolve, reject) {
+            var s = document.createElement("script");
+            s.src = WC_SCRIPT_URL; s.async = true;
+            s.onload = function () { wcCtor() ? resolve() : reject(new Error("WalletConnect failed to load.")); };
+            s.onerror = function () { reject(new Error("WalletConnect failed to load.")); };
+            document.head.appendChild(s);
+          });
+          return wcScriptPromise;
+        }
+
+        function connectWC() {
+          busy = true; render();
+          loadWCScript().then(function () {
+            return wcCtor().init({
+              projectId: WC_PROJECT_ID,
+              chains: [4663],
+              showQrModal: true,
+              rpcMap: { 4663: RPC_URL },
+              metadata: {
+                name: "Pogent",
+                description: "Pogent — the agent layer for fair launches on Robinhood Chain.",
+                url: "https://www.pogent.fun",
+                icons: ["https://www.pogent.fun/logo.jpg"]
+              }
+            });
+          }).then(function (provider) {
+            wcProvider = provider;
+            provider.on("accountsChanged", function (accounts) {
+              account = accounts && accounts.length ? accounts[0] : null;
+              if (!account && activeProvider === provider) activeProvider = null;
+              render();
+            });
+            provider.on("chainChanged", function (id) {
+              chainId = "0x" + Number(id).toString(16);
+              render();
+              if (account) loadWalletData();
+            });
+            provider.on("disconnect", function () {
+              if (activeProvider === provider) { activeProvider = null; account = null; render(); }
+            });
+            return provider.connect().then(function () { return provider; });
+          }).then(function (provider) {
+            activeProvider = provider;
+            account = provider.accounts && provider.accounts.length ? provider.accounts[0] : null;
+            chainId = provider.chainId ? "0x" + Number(provider.chainId).toString(16) : null;
+            busy = false; render();
+            if (account) {
+              if (onTargetChain()) toast("Connected to Robinhood Chain: " + shortAddress(account));
+              else toast("Connected, but switch to Robinhood Chain (4663) to use Pogent.");
+            } else {
+              toast("Could not connect. Please try again.");
+            }
+          }).catch(function () {
+            busy = false; render();
+            toast("WalletConnect was closed or failed. Please try again.");
+          });
+        }
 
         function toast(msg) {
           if (!toastEl) return;
@@ -1473,11 +1547,9 @@
         }
 
         function connect() {
-          var eth = getProvider();
-          if (!eth) {
-            toast("No wallet detected — install MetaMask or a compatible wallet.");
-            return;
-          }
+          if (!window.ethereum) { connectWC(); return; }
+          var eth = window.ethereum;
+          activeProvider = eth;
           busy = true; render();
           eth.request({ method: "eth_requestAccounts" }).then(function (accounts) {
             account = accounts && accounts.length ? accounts[0] : null;
@@ -1515,7 +1587,11 @@
             });
             return;
           }
-          // Connected on Robinhood Chain: clicking the address disconnects the display locally.
+          // Connected on Robinhood Chain: clicking the address disconnects.
+          if (wcProvider && activeProvider === wcProvider) {
+            try { wcProvider.disconnect(); } catch (e) {}
+            activeProvider = null;
+          }
           account = null;
           render();
           toast("Wallet disconnected.");
@@ -2043,6 +2119,14 @@
       var LAUNCHED_TOPIC = "0x8d4aad4953d0ca700d468f3753aa14432d1b35b43ec6409f051fb6aa43a89607";
       var account = null;
 
+      function sharedProvider() { return (window.pogentProvider && window.pogentProvider()) || window.ethereum || null; }
+      function hasProvider() { return !!sharedProvider(); }
+      function ethReq(args) {
+        var p = sharedProvider();
+        if (!p) return Promise.reject(new Error("No wallet found. Connect a wallet first — use the wallet button at the top of the page."));
+        return p.request(args);
+      }
+
       function $(id) { return document.getElementById(id); }
       function setStatus(html) { $("lf-status").innerHTML = html; }
       function setError(msg) { $("lf-error").textContent = msg || ""; }
@@ -2074,21 +2158,21 @@
       }
       async function chainOk() {
         try {
-          var cid = await window.ethereum.request({ method: "eth_chainId" });
+          var cid = await ethReq({ method: "eth_chainId" });
           return cid === 4663 || cid === "4663" || parseInt(cid, 16) === 4663;
         } catch (e) { return false; }
       }
       async function ensureChain() {
         if (await chainOk()) return;
-        try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); } catch (e) {}
+        try { await ethReq({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); } catch (e) {}
         if (await chainOk()) return;
-        try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
+        try { await ethReq({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
         if (await chainOk()) return;
         throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then try again.");
       }
       async function getAccount() {
-        if (!window.ethereum) { setError("No wallet found. Open pogent.fun in your wallet's browser, or install a wallet extension."); return null; }
-        var accs = await window.ethereum.request({ method: "eth_accounts" });
+        if (!hasProvider()) { setError("No wallet found. Connect a wallet first — use the wallet button at the top of the page."); return null; }
+        var accs = await ethReq({ method: "eth_accounts" });
         if (!accs || !accs.length) { setError("Connect your wallet first — use the wallet button at the top of the page."); return null; }
         account = accs[0];
         return account;
@@ -2118,14 +2202,14 @@
           var data = buildData(account, feeBps, bytesToHex(salt), f);
           var tx = { from: account, to: FACTORY, value: FEE_HEX, data: data };
           setStatus("Simulating the launch…");
-          await window.ethereum.request({ method: "eth_call", params: [tx, "latest"] });
+          await ethReq({ method: "eth_call", params: [tx, "latest"] });
           setStatus("Simulation passed. Confirm the launch in your wallet…");
-          var hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+          var hash = await ethReq({ method: "eth_sendTransaction", params: [tx] });
           setStatus("Launch sent. Waiting for confirmation…<br><span class=\"mono\">" + hash + "</span>");
           var token = null, tries = 0;
           while (!token && tries < 40) {
             await new Promise(function (r) { setTimeout(r, 2500); });
-            var rc = await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] });
+            var rc = await ethReq({ method: "eth_getTransactionReceipt", params: [hash] });
             if (rc && rc.logs) {
               for (var i = 0; i < rc.logs.length; i++) {
                 var lg = rc.logs[i];
@@ -2213,6 +2297,14 @@
       var account = null;
       var claimable = 0n;
 
+      function sharedProvider() { return (window.pogentProvider && window.pogentProvider()) || window.ethereum || null; }
+      function hasProvider() { return !!sharedProvider(); }
+      function ethReq(args) {
+        var p = sharedProvider();
+        if (!p) return Promise.reject(new Error("No wallet found. Connect a wallet first — use the wallet button at the top of the page."));
+        return p.request(args);
+      }
+
       function $(id) { return document.getElementById(id); }
       function setStatus(html) { $("cf-status").innerHTML = html; }
       function setError(msg) { $("cf-error").textContent = msg || ""; }
@@ -2229,20 +2321,20 @@
       }
       async function chainOk() {
         try {
-          var cid = await window.ethereum.request({ method: "eth_chainId" });
+          var cid = await ethReq({ method: "eth_chainId" });
           return cid === 4663 || cid === "4663" || parseInt(cid, 16) === 4663;
         } catch (e) { return false; }
       }
       async function ensureChain() {
         if (await chainOk()) return;
-        try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); } catch (e) {}
+        try { await ethReq({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); } catch (e) {}
         if (await chainOk()) return;
-        try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
+        try { await ethReq({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
         if (await chainOk()) return;
         throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then try again.");
       }
       async function refresh() {
-        var res = await window.ethereum.request({ method: "eth_call", params: [{ from: account, to: ESCROW, data: SEL_BALANCE + encAddr(account) }, "latest"] });
+        var res = await ethReq({ method: "eth_call", params: [{ from: account, to: ESCROW, data: SEL_BALANCE + encAddr(account) }, "latest"] });
         claimable = BigInt(res);
         if (claimable > 0n) {
           $("cf-amount").innerHTML = "Claimable: <span class=\"claim-amount\">" + fmtEth(claimable) + " ETH</span>";
@@ -2255,8 +2347,8 @@
         }
       }
       async function syncAccount() {
-        if (!window.ethereum) return null;
-        var accs = await window.ethereum.request({ method: "eth_accounts" });
+        if (!hasProvider()) return null;
+        var accs = await ethReq({ method: "eth_accounts" });
         account = accs && accs.length ? accs[0] : null;
         if (account) {
           if (await chainOk()) { await refresh(); }
@@ -2281,14 +2373,14 @@
           var amount = claimable;
           var tx = { from: account, to: ESCROW, value: "0x0", data: SEL_CLAIM };
           setStatus("Simulating the claim…");
-          await window.ethereum.request({ method: "eth_call", params: [tx, "latest"] });
+          await ethReq({ method: "eth_call", params: [tx, "latest"] });
           setStatus("Simulation passed. Confirm the claim in your wallet…");
-          var hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+          var hash = await ethReq({ method: "eth_sendTransaction", params: [tx] });
           setStatus("Claim sent. Waiting for confirmation…<br><span class=\"mono\">" + hash + "</span>");
           var done = false, tries = 0;
           while (!done && tries < 40) {
             await new Promise(function (r) { setTimeout(r, 2500); });
-            var rc = await window.ethereum.request({ method: "eth_getTransactionReceipt", params: [hash] });
+            var rc = await ethReq({ method: "eth_getTransactionReceipt", params: [hash] });
             if (rc) {
               if (rc.status === "0x0") throw new Error("The claim transaction reverted on-chain.");
               done = true;
