@@ -704,6 +704,86 @@
         </div>
       </header>
 
+<section id="launch" class="wrap">
+        <div class="sec-head">
+          <h2>Launch a token</h2>
+          <p>Launch through Pogent on the Pons factory — Robinhood Chain. Fixed supply of 1,000,000,000, fair launch on a bonding curve, from your own wallet. Pogent never holds your keys: you sign the launch yourself.</p>
+        </div>
+        <div class="glass-panel scan-panel">
+          <form class="launch-form" id="launch-form" novalidate>
+            <div class="launch-grid">
+              <div class="launch-field">
+                <label for="lf-name">Token name</label>
+                <input type="text" id="lf-name" maxlength="64" placeholder="e.g. Pons" autocomplete="off">
+              </div>
+              <div class="launch-field">
+                <label for="lf-symbol">Ticker</label>
+                <input type="text" id="lf-symbol" maxlength="16" placeholder="e.g. PONS" autocomplete="off">
+              </div>
+            </div>
+            <div class="launch-field">
+              <label>Token image — pick a photo, or paste an image URL</label>
+              <div class="launch-pick">
+                <button type="button" class="btn btn-glass" id="lf-pick">Choose photo</button>
+                <img id="lf-preview" alt="" hidden>
+                <span class="launch-upstatus" id="lf-upstatus">Square works best — big files are cropped and resized automatically.</span>
+              </div>
+              <input type="file" id="lf-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+              <input type="text" id="lf-image" placeholder="ipfs://… or https://… (filled automatically after upload)" autocomplete="off">
+            </div>
+            <div class="launch-field">
+              <label for="lf-desc">Description</label>
+              <textarea id="lf-desc" maxlength="280" placeholder="What is this token? One or two sentences."></textarea>
+            </div>
+            <div class="launch-grid">
+              <div class="launch-field">
+                <label for="lf-x">X (Twitter) URL — optional</label>
+                <input type="text" id="lf-x" placeholder="https://x.com/…" autocomplete="off">
+              </div>
+              <div class="launch-field">
+                <label for="lf-telegram">Telegram URL — optional</label>
+                <input type="text" id="lf-telegram" placeholder="https://t.me/…" autocomplete="off">
+              </div>
+            </div>
+            <div class="launch-grid">
+              <div class="launch-field">
+                <label for="lf-website">Website URL — optional</label>
+                <input type="text" id="lf-website" placeholder="https://…" autocomplete="off">
+              </div>
+              <div class="launch-field">
+                <label for="lf-fee">Creator fee % — your share of trading fees, fixed at launch (0–10)</label>
+                <input type="number" id="lf-fee" min="0" max="10" step="0.1" value="0">
+              </div>
+            </div>
+            <p class="launch-facts">Pair: <b>ETH</b> — USDG, stock and other pairs follow. Launch fee <b>0.0005 ETH</b>, paid to the Pons factory. Graduates at <b>4.20 ETH</b>. Curve fee 1.0%. Name, ticker and creator fee cannot be changed after launch — check every field.</p>
+            <div class="launch-actions">
+              <button type="submit" class="btn btn-gold" id="lf-launch">Launch token</button>
+            </div>
+            <p class="launch-status" id="lf-status" role="status" aria-live="polite"></p>
+            <p class="launch-error" id="lf-error" role="alert"></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- Creator fee claim -->
+      <section id="claim" class="wrap">
+        <div class="sec-head">
+          <h2>Claim creator fees</h2>
+          <p>Creator fees from tokens launched on the Pons factory collect in the Pons fee escrow, under the wallet that launched them. Connect that wallet to see what is claimable and take it out in ETH — you sign the claim yourself, Pogent never holds your keys.</p>
+        </div>
+        <div class="glass-panel scan-panel">
+          <div class="launch-form">
+            <p class="launch-facts">Fee escrow (Pons): <span class="mono" style="font-size:12.5px;word-break:break-all">0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e</span> · Robinhood Chain. Claims are paid in ETH to the connected wallet.</p>
+            <p class="launch-status" id="cf-amount" role="status" aria-live="polite">Connect the wallet that launched your token to check its claimable fees.</p>
+            <div class="launch-actions">
+              <button type="button" class="btn btn-gold" id="cf-claim" disabled>Claim fees</button>
+            </div>
+            <p class="launch-status" id="cf-status" role="status" aria-live="polite"></p>
+            <p class="launch-error" id="cf-error" role="alert"></p>
+          </div>
+        </div>
+      </section>
+
       <!-- About -->
       <section id="about" class="wrap">
         <div class="sec-head">
@@ -988,87 +1068,7 @@
       </section>
 
       <!-- Launchpad -->
-      <section id="launch" class="wrap">
-        <div class="sec-head">
-          <h2>Launch a token</h2>
-          <p>Launch through Pogent on the Pons factory — Robinhood Chain. Fixed supply of 1,000,000,000, fair launch on a bonding curve, from your own wallet. Pogent never holds your keys: you sign the launch yourself.</p>
-        </div>
-        <div class="glass-panel scan-panel">
-          <form class="launch-form" id="launch-form" novalidate>
-            <div class="launch-grid">
-              <div class="launch-field">
-                <label for="lf-name">Token name</label>
-                <input type="text" id="lf-name" maxlength="64" placeholder="e.g. Pons" autocomplete="off">
-              </div>
-              <div class="launch-field">
-                <label for="lf-symbol">Ticker</label>
-                <input type="text" id="lf-symbol" maxlength="16" placeholder="e.g. PONS" autocomplete="off">
-              </div>
-            </div>
-            <div class="launch-field">
-              <label>Token image — pick a photo, or paste an image URL</label>
-              <div class="launch-pick">
-                <button type="button" class="btn btn-glass" id="lf-pick">Choose photo</button>
-                <img id="lf-preview" alt="" hidden>
-                <span class="launch-upstatus" id="lf-upstatus">Square works best — big files are cropped and resized automatically.</span>
-              </div>
-              <input type="file" id="lf-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-              <input type="text" id="lf-image" placeholder="ipfs://… or https://… (filled automatically after upload)" autocomplete="off">
-            </div>
-            <div class="launch-field">
-              <label for="lf-desc">Description</label>
-              <textarea id="lf-desc" maxlength="280" placeholder="What is this token? One or two sentences."></textarea>
-            </div>
-            <div class="launch-grid">
-              <div class="launch-field">
-                <label for="lf-x">X (Twitter) URL — optional</label>
-                <input type="text" id="lf-x" placeholder="https://x.com/…" autocomplete="off">
-              </div>
-              <div class="launch-field">
-                <label for="lf-telegram">Telegram URL — optional</label>
-                <input type="text" id="lf-telegram" placeholder="https://t.me/…" autocomplete="off">
-              </div>
-            </div>
-            <div class="launch-grid">
-              <div class="launch-field">
-                <label for="lf-website">Website URL — optional</label>
-                <input type="text" id="lf-website" placeholder="https://…" autocomplete="off">
-              </div>
-              <div class="launch-field">
-                <label for="lf-fee">Creator fee % — your share of trading fees, fixed at launch (0–10)</label>
-                <input type="number" id="lf-fee" min="0" max="10" step="0.1" value="0">
-              </div>
-            </div>
-            <p class="launch-facts">Pair: <b>ETH</b> — USDG, stock and other pairs follow. Launch fee <b>0.0005 ETH</b>, paid to the Pons factory. Graduates at <b>4.20 ETH</b>. Curve fee 1.0%. Name, ticker and creator fee cannot be changed after launch — check every field.</p>
-            <div class="launch-actions">
-              <button type="button" class="btn btn-glass" id="lf-connect">Connect wallet</button>
-              <button type="submit" class="btn btn-gold" id="lf-launch">Launch token</button>
-            </div>
-            <p class="launch-status" id="lf-status" role="status" aria-live="polite"></p>
-            <p class="launch-error" id="lf-error" role="alert"></p>
-          </form>
-        </div>
-      </section>
-
-      <!-- Creator fee claim -->
-      <section id="claim" class="wrap">
-        <div class="sec-head">
-          <h2>Claim creator fees</h2>
-          <p>Creator fees from tokens launched on the Pons factory collect in the Pons fee escrow, under the wallet that launched them. Connect that wallet to see what is claimable and take it out in ETH — you sign the claim yourself, Pogent never holds your keys.</p>
-        </div>
-        <div class="glass-panel scan-panel">
-          <div class="launch-form">
-            <p class="launch-facts">Fee escrow (Pons): <span class="mono" style="font-size:12.5px;word-break:break-all">0xd3AFEB2a57f70eF218Aa82451c51B2fb0416Ac9e</span> · Robinhood Chain. Claims are paid in ETH to the connected wallet.</p>
-            <p class="launch-status" id="cf-amount" role="status" aria-live="polite">Connect the wallet that launched your token to check its claimable fees.</p>
-            <div class="launch-actions">
-              <button type="button" class="btn btn-glass" id="cf-connect">Connect wallet</button>
-              <button type="button" class="btn btn-gold" id="cf-claim" disabled>Claim fees</button>
-            </div>
-            <p class="launch-status" id="cf-status" role="status" aria-live="polite"></p>
-            <p class="launch-error" id="cf-error" role="alert"></p>
-          </div>
-        </div>
-      </section>
+      
 
       <!-- Guarded Launches -->
       <section id="launches" class="wrap">
@@ -2072,23 +2072,20 @@
         if (await chainOk()) return;
         try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
         if (await chainOk()) return;
-        throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then press Connect again.");
+        throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then try again.");
       }
-      async function connect() {
-        setError("");
+      async function getAccount() {
         if (!window.ethereum) { setError("No wallet found. Open pogent.fun in your wallet's browser, or install a wallet extension."); return null; }
-        var accs = await window.ethereum.request({ method: "eth_requestAccounts" });
-        await ensureChain();
+        var accs = await window.ethereum.request({ method: "eth_accounts" });
+        if (!accs || !accs.length) { setError("Connect your wallet first — use the wallet button at the top of the page."); return null; }
         account = accs[0];
-        $("lf-connect").textContent = account.slice(0, 6) + "…" + account.slice(-4);
         return account;
       }
-      $("lf-connect").addEventListener("click", function () { connect().catch(function (e) { setError(shortErr(e)); }); });
       $("launch-form").addEventListener("submit", async function (ev) {
         ev.preventDefault();
         setError(""); setStatus("");
         try {
-          if (!account) { await connect(); if (!account) return; }
+          await getAccount(); if (!account) return;
           await ensureChain();
           var f = {
             name: $("lf-name").value.trim(),
@@ -2230,7 +2227,7 @@
         if (await chainOk()) return;
         try { await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Robinhood Chain", rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"], nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 } }] }); } catch (e) {}
         if (await chainOk()) return;
-        throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then press Connect again.");
+        throw new Error("Your wallet is not on Robinhood Chain yet. Switch the network to Robinhood Chain inside your wallet, then try again.");
       }
       async function refresh() {
         var res = await window.ethereum.request({ method: "eth_call", params: [{ from: account, to: ESCROW, data: SEL_BALANCE + encAddr(account) }, "latest"] });
@@ -2245,21 +2242,27 @@
           $("cf-claim").textContent = "Claim fees";
         }
       }
-      async function connect() {
-        setError("");
-        if (!window.ethereum) { setError("No wallet found. Open pogent.fun in your wallet's browser, or install a wallet extension."); return null; }
-        var accs = await window.ethereum.request({ method: "eth_requestAccounts" });
-        await ensureChain();
-        account = accs[0];
-        $("cf-connect").textContent = account.slice(0, 6) + "…" + account.slice(-4);
-        await refresh();
+      async function syncAccount() {
+        if (!window.ethereum) return null;
+        var accs = await window.ethereum.request({ method: "eth_accounts" });
+        account = accs && accs.length ? accs[0] : null;
+        if (account) {
+          if (await chainOk()) { await refresh(); }
+          else { $("cf-amount").textContent = "Your wallet is connected, but not on Robinhood Chain. Switch networks in your wallet to see claimable fees."; }
+        } else {
+          claimable = 0n;
+          $("cf-claim").disabled = true;
+          $("cf-claim").textContent = "Claim fees";
+          $("cf-amount").textContent = "Connect your wallet with the button at the top of the page to see claimable creator fees.";
+        }
         return account;
       }
-      $("cf-connect").addEventListener("click", function () { connect().catch(function (e) { setError(shortErr(e)); }); });
+      syncAccount().catch(function () {});
       $("cf-claim").addEventListener("click", async function () {
         setError(""); setStatus("");
         try {
-          if (!account) { await connect(); if (!account) return; }
+          await syncAccount();
+          if (!account) { setError("Connect your wallet first — use the wallet button at the top of the page."); return; }
           await ensureChain();
           await refresh();
           if (claimable <= 0n) { setStatus("Nothing to claim for this wallet right now."); return; }
@@ -2295,11 +2298,9 @@
           $("cf-claim").disabled = true;
           $("cf-claim").textContent = "Claim fees";
           if (account) {
-            $("cf-connect").textContent = account.slice(0, 6) + "…" + account.slice(-4);
             refresh().catch(function () {});
           } else {
-            $("cf-connect").textContent = "Connect wallet";
-            $("cf-amount").textContent = "Connect the wallet that launched your token to check its claimable fees.";
+            $("cf-amount").textContent = "Connect your wallet with the button at the top of the page to see claimable creator fees.";
           }
         });
       }
