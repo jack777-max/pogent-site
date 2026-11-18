@@ -418,6 +418,59 @@
       .scan-flag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--gold-bright); flex: none; }
       .scan-note { margin-top: 14px; font-size: 14px; font-weight: 500; color: var(--ink-2); }
       .scan-link { margin-top: 18px; }
+
+      /* Explore */
+      .exp-tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+      .exp-tab {
+        font-family: "Outfit", sans-serif; font-weight: 600; font-size: 14.5px;
+        padding: 9px 18px; border-radius: 999px; cursor: pointer;
+        background: var(--glass); border: 1px solid var(--glass-line); color: var(--ink-2);
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+      .exp-tab:hover { border-color: rgba(185, 138, 47, 0.7); }
+      .exp-tab.active { color: var(--gold); background: var(--gold-soft); border-color: rgba(185, 138, 47, 0.55); }
+      .exp-refresh {
+        margin-left: auto; font-family: "Outfit", sans-serif; font-weight: 600; font-size: 14px;
+        padding: 9px 16px; border-radius: 999px; cursor: pointer;
+        background: transparent; border: 1px solid var(--glass-line); color: var(--ink-3);
+      }
+      .exp-refresh:hover { border-color: rgba(185, 138, 47, 0.7); color: var(--ink-2); }
+      .exp-status { font-size: 14.5px; color: var(--ink-3); padding: 8px 0 4px; }
+      .exp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+      .exp-card {
+        display: flex; gap: 14px; align-items: flex-start;
+        padding: 16px; border-radius: 18px;
+        background: var(--glass); border: 1px solid var(--glass-line);
+      }
+      .exp-art { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; flex: none; background: var(--glass-strong); }
+      .exp-art-off { display: none; }
+      .exp-main { flex: 1 1 auto; min-width: 0; }
+      .exp-name { font-family: "Outfit", sans-serif; font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .exp-name .exp-sym { color: var(--gold); font-weight: 600; font-size: 13.5px; margin-left: 6px; }
+      .exp-grad {
+        font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.05em;
+        color: var(--mint-deep); border: 1px solid rgba(52, 211, 153, 0.4);
+        border-radius: 999px; padding: 2px 8px; margin-left: 8px; vertical-align: 2px; white-space: nowrap;
+      }
+      .exp-meta { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+      .exp-bar { height: 6px; border-radius: 999px; background: var(--glass-strong); margin-top: 10px; overflow: hidden; }
+      .exp-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--gold), var(--gold-bright)); }
+      .exp-bar-label { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-3); margin-top: 5px; }
+      .exp-actions { display: flex; flex-direction: column; gap: 8px; flex: none; }
+      .exp-scan {
+        font-family: "Outfit", sans-serif; font-weight: 700; font-size: 13.5px; cursor: pointer;
+        padding: 8px 14px; border-radius: 999px; white-space: nowrap;
+        color: #1a1405; background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+        border: 1px solid rgba(185, 138, 47, 0.6);
+      }
+      .exp-trade {
+        font-family: "Outfit", sans-serif; font-weight: 600; font-size: 13px; text-align: center;
+        padding: 7px 14px; border-radius: 999px; text-decoration: none; white-space: nowrap;
+        color: var(--ink-2); border: 1px solid var(--glass-line); background: var(--glass);
+      }
+      .exp-trade:hover { border-color: rgba(185, 138, 47, 0.7); }
+      .exp-note { margin-top: 14px; font-size: 14px; color: var(--ink-3); }
+      .exp-note a { color: var(--gold); }
       @media (max-width: 560px) {
         .scan-panel { padding: 22px 20px; }
         .scan-row { flex-direction: column; gap: 2px; }
@@ -831,6 +884,23 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <!-- Explore -->
+      <section id="explore" class="wrap">
+        <div class="sec-head">
+          <h2>Explore launches</h2>
+          <p>Every launch on the Pons factory, live. Spot one here — then run it through Guard Scan before you ape.</p>
+        </div>
+        <div class="exp-tabs" role="tablist" aria-label="Explore launches">
+          <button type="button" class="exp-tab active" data-exp-tab="new">New</button>
+          <button type="button" class="exp-tab" data-exp-tab="active">Active</button>
+          <button type="button" class="exp-tab" data-exp-tab="bonding">Bonding</button>
+          <button type="button" class="exp-refresh" id="exp-refresh">Refresh</button>
+        </div>
+        <div class="exp-status" id="exp-status">Loading the latest launches…</div>
+        <div class="exp-grid" id="exp-grid"></div>
+        <p class="exp-note" id="exp-note" hidden>The live feed is warming up — browse launches on <a href="https://ponsfamily.com" target="_blank" rel="noopener">Pons ↗</a> meanwhile.</p>
       </section>
 
       <!-- About -->
@@ -2454,6 +2524,145 @@
         });
       }
     })();
+    </script>
+    <script>
+      // ---------- Explore launches (Pons factory feed via the Pogent relay) ----------
+      (function () {
+        var FEED = "https://pogent-upload.vercel.app/api/feed";
+        var grid = document.getElementById("exp-grid");
+        var statusEl = document.getElementById("exp-status");
+        var noteEl = document.getElementById("exp-note");
+        if (!grid || !statusEl) return;
+        var data = { all: [], activeOrder: [] };
+        var currentTab = "new";
+
+        function esc(s) {
+          return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+          });
+        }
+        function fmtUsd(v) {
+          v = Number(v) || 0;
+          if (v >= 1e6) return "$" + (v / 1e6).toFixed(2) + "M";
+          if (v >= 1e3) return "$" + (v / 1e3).toFixed(1) + "K";
+          return "$" + v.toFixed(0);
+        }
+        function fmtAge(ts) {
+          var s = Math.max(0, Math.floor(Date.now() / 1000) - (Number(ts) || 0));
+          if (s < 60) return s + "s ago";
+          if (s < 3600) return Math.floor(s / 60) + "m ago";
+          if (s < 86400) return Math.floor(s / 3600) + "h ago";
+          return Math.floor(s / 86400) + "d ago";
+        }
+        function artUrl(a) {
+          if (!a) return "";
+          if (a.indexOf("ipfs://") === 0) return "https://ipfs.io/ipfs/" + a.slice(7);
+          return a;
+        }
+        function pick(tab) {
+          var items;
+          if (tab === "active") {
+            var byAddr = {};
+            data.all.forEach(function (i) { byAddr[i.address] = i; });
+            items = data.activeOrder.map(function (a) { return byAddr[a]; }).filter(Boolean);
+          } else if (tab === "bonding") {
+            items = data.all.filter(function (i) { return i.stage === "curve"; })
+              .sort(function (a, b) { return (b.progress || 0) - (a.progress || 0); });
+          } else {
+            items = data.all.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+          }
+          return items.slice(0, 24);
+        }
+        function render() {
+          var items = pick(currentTab);
+          if (!items.length) {
+            grid.innerHTML = "";
+            statusEl.textContent = "Nothing here right now — hit Refresh in a moment.";
+            statusEl.style.display = "block";
+            return;
+          }
+          statusEl.style.display = "none";
+          grid.innerHTML = items.map(function (i) {
+            var art = artUrl(i.artwork);
+            var pct = Math.round((Number(i.progress) || 0) * 100);
+            var bar = i.stage === "curve"
+              ? '<div class="exp-bar"><span style="width:' + pct + '%"></span></div><div class="exp-bar-label">' + pct + "% to graduation</div>"
+              : "";
+            var grad = i.stage === "graduated" ? '<span class="exp-grad">GRADUATED</span>' : "";
+            return '<article class="exp-card">'
+              + (art ? '<img class="exp-art" src="' + esc(art) + '" alt="" loading="lazy" onerror="this.classList.add(\'exp-art-off\')">' : "")
+              + '<div class="exp-main"><div class="exp-name">' + esc(i.name || "Unknown")
+              + '<span class="exp-sym">$' + esc(i.symbol || "") + "</span>" + grad + "</div>"
+              + '<div class="exp-meta">MC ' + fmtUsd(i.marketCapUsd) + " · " + fmtAge(i.createdAt) + " · " + (i.tradeCount || 0) + " trades</div>"
+              + bar + "</div>"
+              + '<div class="exp-actions"><button type="button" class="exp-scan" data-exp-ca="' + esc(i.address) + '">Guard Scan</button>'
+              + '<a class="exp-trade" href="https://ponsfamily.com/launchpad/' + esc(i.address) + '" target="_blank" rel="noopener">Trade ↗</a></div>'
+              + "</article>";
+          }).join("");
+        }
+        function fetchFeed(params) {
+          return fetch(FEED + "?" + params).then(function (r) {
+            if (!r.ok) throw new Error("feed " + r.status);
+            return r.json();
+          });
+        }
+        function load() {
+          statusEl.style.display = "block";
+          statusEl.textContent = "Loading the latest launches…";
+          noteEl.hidden = true;
+          var jobs = [
+            fetchFeed("sort=active&limit=40"),
+            fetchFeed("limit=40"),
+          ];
+          Promise.all(jobs).then(function (res) {
+            var byAddr = {};
+            var activeOrder = [];
+            (res[0].items || []).forEach(function (i) { byAddr[i.address] = i; activeOrder.push(i.address); });
+            var cursor = res[0].nextCursor;
+            var extra = cursor
+              ? fetchFeed("sort=active&limit=40&cursor=" + encodeURIComponent(cursor)).catch(function () { return { items: [] }; })
+              : Promise.resolve({ items: [] });
+            return extra.then(function (page2) {
+              (page2.items || []).forEach(function (i) {
+                if (!byAddr[i.address]) { byAddr[i.address] = i; activeOrder.push(i.address); }
+              });
+              (res[1].items || []).forEach(function (i) { if (!byAddr[i.address]) byAddr[i.address] = i; });
+              data = { all: Object.values(byAddr), activeOrder: activeOrder };
+              render();
+            });
+          }).catch(function () {
+            grid.innerHTML = "";
+            statusEl.style.display = "block";
+            statusEl.textContent = "The live feed did not answer.";
+            noteEl.hidden = false;
+          });
+        }
+        document.querySelectorAll("[data-exp-tab]").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            document.querySelectorAll("[data-exp-tab]").forEach(function (b) { b.classList.remove("active"); });
+            btn.classList.add("active");
+            currentTab = btn.getAttribute("data-exp-tab");
+            render();
+          });
+        });
+        var refreshBtn = document.getElementById("exp-refresh");
+        if (refreshBtn) refreshBtn.addEventListener("click", load);
+        grid.addEventListener("click", function (ev) {
+          var btn = ev.target.closest("[data-exp-ca]");
+          if (!btn) return;
+          var input = document.getElementById("scan-input");
+          var form = document.getElementById("scan-form");
+          var section = document.getElementById("guard-scan");
+          if (!input || !form || !section) return;
+          input.value = btn.getAttribute("data-exp-ca");
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(function () {
+            if (form.requestSubmit) form.requestSubmit();
+            else form.dispatchEvent(new Event("submit", { cancelable: true }));
+          }, 450);
+        });
+        load();
+      })();
     </script>
   </body>
 </html>
