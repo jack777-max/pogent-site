@@ -902,9 +902,12 @@
           <p>Every launch on the Pons factory, live. Spot one here — then run it through Guard Scan before you ape.</p>
         </div>
         <div class="exp-tabs" role="tablist" aria-label="Explore launches">
-          <button type="button" class="exp-tab active" data-exp-tab="new">New</button>
+          <button type="button" class="exp-tab active" data-exp-tab="mcap">Market Cap</button>
+          <button type="button" class="exp-tab" data-exp-tab="volume">Volume</button>
+          <button type="button" class="exp-tab" data-exp-tab="new">New</button>
           <button type="button" class="exp-tab" data-exp-tab="active">Active</button>
-          <button type="button" class="exp-tab" data-exp-tab="bonding">Bonding</button>
+          <button type="button" class="exp-tab" data-exp-tab="bonding">Near Graduation</button>
+          <button type="button" class="exp-tab" data-exp-tab="graduated">Graduated</button>
           <button type="button" class="exp-refresh" id="exp-refresh">Refresh</button>
         </div>
         <div class="exp-status" id="exp-status">Loading the latest launches…</div>
@@ -2543,7 +2546,7 @@
         var noteEl = document.getElementById("exp-note");
         if (!grid || !statusEl) return;
         var data = { all: [], activeOrder: [] };
-        var currentTab = "new";
+        var currentTab = "mcap";
 
         function esc(s) {
           return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -2581,8 +2584,15 @@
           } else if (tab === "bonding") {
             items = data.all.filter(function (i) { return i.stage === "curve"; })
               .sort(function (a, b) { return (b.progress || 0) - (a.progress || 0); });
-          } else {
+          } else if (tab === "volume") {
+            items = data.all.slice().sort(function (a, b) { return (b.volumeUsd || 0) - (a.volumeUsd || 0); });
+          } else if (tab === "graduated") {
+            items = data.all.filter(function (i) { return i.stage === "graduated"; })
+              .sort(function (a, b) { return (b.marketCapUsd || 0) - (a.marketCapUsd || 0); });
+          } else if (tab === "new") {
             items = data.all.slice().sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+          } else {
+            items = data.all.slice().sort(function (a, b) { return (b.marketCapUsd || 0) - (a.marketCapUsd || 0); });
           }
           return items.slice(0, 24);
         }
@@ -2607,7 +2617,7 @@
               + (art ? '<img class="exp-art" src="' + esc(art) + '"' + (fb ? ' data-fb="' + esc(fb) + '"' : "") + ' alt="" loading="lazy">' : "")
               + '<div class="exp-main"><div class="exp-name">' + esc(i.name || "Unknown")
               + '<span class="exp-sym">$' + esc(i.symbol || "") + "</span>" + grad + "</div>"
-              + '<div class="exp-meta">MC ' + fmtUsd(i.marketCapUsd) + " · " + fmtAge(i.createdAt) + " · " + (i.tradeCount || 0) + " trades</div>"
+              + '<div class="exp-meta">MC ' + fmtUsd(i.marketCapUsd) + " · Vol " + fmtUsd(i.volumeUsd) + " · " + fmtAge(i.createdAt) + " · " + (i.tradeCount || 0) + " trades</div>"
               + bar + "</div>"
               + '<div class="exp-actions"><button type="button" class="exp-scan" data-exp-ca="' + esc(i.address) + '">Guard Scan</button>'
               + '<a class="exp-trade" href="https://ponsfamily.com/launchpad/' + esc(i.address) + '" target="_blank" rel="noopener">Trade ↗</a></div>'
