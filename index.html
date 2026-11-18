@@ -2565,8 +2565,12 @@
         }
         function artUrl(a) {
           if (!a) return "";
-          if (a.indexOf("ipfs://") === 0) return "https://ipfs.io/ipfs/" + a.slice(7);
+          if (a.indexOf("ipfs://") === 0) return "https://gateway.pinata.cloud/ipfs/" + a.slice(7);
           return a;
+        }
+        function artFallback(a) {
+          if (!a || a.indexOf("ipfs://") !== 0) return "";
+          return "https://ipfs.io/ipfs/" + a.slice(7);
         }
         function pick(tab) {
           var items;
@@ -2598,8 +2602,9 @@
               ? '<div class="exp-bar"><span style="width:' + pct + '%"></span></div><div class="exp-bar-label">' + pct + "% to graduation</div>"
               : "";
             var grad = i.stage === "graduated" ? '<span class="exp-grad">GRADUATED</span>' : "";
+            var fb = artFallback(i.artwork);
             return '<article class="exp-card">'
-              + (art ? '<img class="exp-art" src="' + esc(art) + '" alt="" loading="lazy" onerror="this.classList.add(\'exp-art-off\')">' : "")
+              + (art ? '<img class="exp-art" src="' + esc(art) + '"' + (fb ? ' data-fb="' + esc(fb) + '"' : "") + ' alt="" loading="lazy">' : "")
               + '<div class="exp-main"><div class="exp-name">' + esc(i.name || "Unknown")
               + '<span class="exp-sym">$' + esc(i.symbol || "") + "</span>" + grad + "</div>"
               + '<div class="exp-meta">MC ' + fmtUsd(i.marketCapUsd) + " · " + fmtAge(i.createdAt) + " · " + (i.tradeCount || 0) + " trades</div>"
@@ -2656,6 +2661,13 @@
         });
         var refreshBtn = document.getElementById("exp-refresh");
         if (refreshBtn) refreshBtn.addEventListener("click", load);
+        grid.addEventListener("error", function (ev) {
+          var img = ev.target;
+          if (!img.classList || !img.classList.contains("exp-art")) return;
+          var fb = img.getAttribute("data-fb");
+          if (fb && img.src !== fb) { img.src = fb; return; }
+          img.classList.add("exp-art-off");
+        }, true);
         grid.addEventListener("click", function (ev) {
           var btn = ev.target.closest("[data-exp-ca]");
           if (!btn) return;
