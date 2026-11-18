@@ -762,8 +762,12 @@
                 <label for="lf-fee">Creator fee % — your share of trading fees, fixed at launch (0–10)</label>
                 <input type="number" id="lf-fee" min="0" max="10" step="0.1" value="0">
               </div>
+              <div class="launch-field">
+                <label for="lf-buy">Initial buy (optional) — ETH you buy with in the same transaction</label>
+                <input type="text" id="lf-buy" inputmode="decimal" placeholder="0 — launch only" autocomplete="off">
+              </div>
             </div>
-            <p class="launch-facts">Pair: <b>ETH</b> — USDG, stock and other pairs follow. Launch fee <b>0.0005 ETH</b>, paid to the Pons factory. Graduates at <b>4.20 ETH</b>. Curve fee 1.0%. Name, ticker and creator fee cannot be changed after launch — check every field.</p>
+            <p class="launch-facts">Pair: <b>ETH</b> — USDG, stock and other pairs follow. Launch fee <b>0.0005 ETH</b>, paid to the Pons factory. Graduates at <b>4.20 ETH</b>. Curve fee 1.0%. An initial buy settles in the launch transaction itself, before anyone else can trade. Name, ticker and creator fee cannot be changed after launch — check every field.</p>
             <div class="launch-actions">
               <button type="submit" class="btn btn-gold" id="lf-launch">Launch token</button>
             </div>
@@ -2153,6 +2157,31 @@
         var head = word(128n) + word(0n) + word(0n) + word(BigInt(128 + cfg.length / 2));
         return "0xa72101af" + head + cfg + word(0n);
       }
+      var LAB = "0xe33E9E479dF8802cb0866d5d05258bEc4cF62948"; // PonsV2LaunchAndBuy
+      function buildLabData(creator, feeBps, saltHex, f, quoteIn, minOut, recipient) {
+        var list = [f.twitter, f.telegram, "", f.website, ""];
+        var offs = [], datas = [], off = 160, i, e;
+        for (i = 0; i < list.length; i++) { e = encStr(list[i]); offs.push(off); datas.push(e); off += e.length / 2; }
+        var socials = offs.map(function (o) { return word(BigInt(o)); }).join("") + datas.join("");
+        var n = encStr(f.name), sy = encStr(f.symbol), u = encStr(f.uri), d = encStr(f.desc);
+        var o1 = 320, o2 = o1 + n.length / 2, o3 = o2 + sy.length / 2, o4 = o3 + u.length / 2, o5 = o4 + d.length / 2;
+        var cfg = word(BigInt(o1)) + word(BigInt(o2)) + word(BigInt(o3)) + word(BigInt(o4)) + word(BigInt(o5))
+          + encAddr(creator) + word(BigInt(feeBps)) + word(0n) + CONST15 + saltHex
+          + n + sy + u + d + socials;
+        var head = word(224n) + word(0n) + word(0n) + word(quoteIn) + word(minOut) + encAddr(recipient) + word(BigInt(224 + cfg.length / 2));
+        return "0xf85f8e41" + head + cfg + word(0n);
+      }
+      function parseEthWei(str) {
+        var s = String(str || "").trim().replace(",", ".");
+        if (!s) return 0n;
+        if (!/^\d+(\.\d+)?$/.test(s)) return -1n;
+        var parts = s.split("."), whole = parts[0], frac = (parts[1] || "") + "000000000000000000";
+        return BigInt(whole) * 1000000000000000000n + BigInt(frac.slice(0, 18));
+      }
+      function fmtTokens(wei) {
+        var s = (wei / 1000000000000000000n).toString();
+        return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      }
       function shortErr(err) {
         var m = (err && err.message) ? err.message : String(err);
         if (err && err.code === 4001) return "You rejected the request in your wallet.";
@@ -2200,12 +2229,25 @@
           if (!/^(ipfs:\/\/|https:\/\/)/.test(f.uri)) throw new Error("Image URL must start with ipfs:// or https://");
           if (isNaN(feePct) || feePct < 0 || feePct > 10) throw new Error("Creator fee must be between 0 and 10%.");
           var feeBps = Math.round(feePct * 100);
+          var buyWei = parseEthWei($("lf-buy").value);
+          if (buyWei < 0n) throw new Error("Initial buy must be a number like 0.01 — or leave it empty for a launch without one.");
           var salt = new Uint8Array(32); crypto.getRandomValues(salt);
-          var data = buildData(account, feeBps, bytesToHex(salt), f);
-          var tx = { from: account, to: FACTORY, value: FEE_HEX, data: data };
-          setStatus("Simulating the launch…");
-          await ethReq({ method: "eth_call", params: [tx, "latest"] });
-          setStatus("Simulation passed. Confirm the launch in your wallet…");
+          var tx;
+          if (buyWei > 0n) {
+            var totalHex = "0x" + (500000000000000n + buyWei).toString(16);
+            var probe = { from: account, to: LAB, value: totalHex, data: buildLabData(account, feeBps, bytesToHex(salt), f, buyWei, 1n, account) };
+            setStatus("Simulating the launch + initial buy…");
+            var simRes = await ethReq({ method: "eth_call", params: [probe, "latest"] });
+            var tokensOut = BigInt("0x" + String(simRes).slice(130, 194));
+            var minOut = tokensOut * 99n / 100n;
+            tx = { from: account, to: LAB, value: totalHex, data: buildLabData(account, feeBps, bytesToHex(salt), f, buyWei, minOut, account) };
+            setStatus("Simulation passed — initial buy ≈ " + fmtTokens(tokensOut) + " tokens. Confirm the launch in your wallet…");
+          } else {
+            tx = { from: account, to: FACTORY, value: FEE_HEX, data: buildData(account, feeBps, bytesToHex(salt), f) };
+            setStatus("Simulating the launch…");
+            await ethReq({ method: "eth_call", params: [tx, "latest"] });
+            setStatus("Simulation passed. Confirm the launch in your wallet…");
+          }
           var hash = await ethReq({ method: "eth_sendTransaction", params: [tx] });
           setStatus("Launch sent. Waiting for confirmation…<br><span class=\"mono\">" + hash + "</span>");
           var token = null, tries = 0;
